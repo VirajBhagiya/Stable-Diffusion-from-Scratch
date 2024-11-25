@@ -79,7 +79,7 @@ class DDPMSampler:
         timesteps = timesteps.to(original_samples.device)
         
         sqrt_alpha_prod = alpha_cumprod[timesteps] ** 0.5
-        sqrt_alpha_prod = sqrt_alpha_prod.faltten()
+        sqrt_alpha_prod = sqrt_alpha_prod.flatten()
         while len(sqrt_alpha_prod.shape) < len(original_samples.shape):
             sqrt_alpha_prod = sqrt_alpha_prod.unsqueeze(-1)
             

@@ -1,4 +1,3 @@
-import time
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -20,9 +19,9 @@ def generate(prompt: str, uncond_prompt: str, # Negative prompt or empty string
             raise ValueError("Strength must be between 0 and 1")
         
         if idle_device:
-            to_idle: lambda x: x.to(idle_device)
+            to_idle = lambda x: x.to(idle_device)
         else:
-            to_idle: lambda x: x
+            to_idle = lambda x: x
             
         generator = torch.Generator(device=device)
         if seed is None:
@@ -58,7 +57,7 @@ def generate(prompt: str, uncond_prompt: str, # Negative prompt or empty string
         
         if sampler_name == "ddpm":
             sampler = DDPMSampler(generator)
-            sampler.set_inference_steps(n_inference_steps)
+            sampler.set_inference_timesteps(n_inference_steps)
         else:
             raise ValueError(f"Unknown Sampler {sampler_name}")
         
