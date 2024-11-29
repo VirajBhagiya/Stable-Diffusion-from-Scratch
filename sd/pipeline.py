@@ -8,7 +8,7 @@ HEIGHT = 512
 LATENT_WIDTH = WIDTH // 8
 LATENT_HEIGHT = HEIGHT // 8
 
-def generate(prompt: str, uncond_prompt: str, # Negative prompt or empty string
+def generate(prompt, uncond_prompt, # Negative prompt or empty string
              input_image=None, strength=0.8, do_cfg=True, cfg_scale=7.5, sampler_name="ddpm", 
              n_inference_steps=50, models={}, seed=None, device=None,
              idle_device=None, tokenizer=None):
@@ -70,7 +70,7 @@ def generate(prompt: str, uncond_prompt: str, # Negative prompt or empty string
             input_image_tensor = input_image.resize((WIDTH, HEIGHT))
             input_image_tensor = np.array(input_image_tensor)
             # (Height, Width, Channel)
-            input_image_tensor = torch.tensor(input_image_tensor, dtype=torch.float32)
+            input_image_tensor = torch.tensor(input_image_tensor, dtype=torch.float32, device=device)
             input_image_tensor = rescale(input_image_tensor, (0, 255), (-1, 1))
             # (Height, Width, Channel) -> (Batch_Size, Height, Width, Channel)
             input_image_tensor = input_image_tensor.unsqueeze(0)
@@ -140,7 +140,7 @@ def rescale(x, old_range, new_range, clamp=False):
 
 def get_time_embedding(timestep):
     # (160,)
-    freqs = torch.pow(10000, torch.arange(start=0, end=160, dtype=torch.float32) / 160)
+    freqs = torch.pow(10000, -torch.arange(start=0, end=160, dtype=torch.float32) / 160)
     # (1, 160)
     x = torch.tensor([timestep], dtype=torch.float32)[:, None] * freqs[None]
     # (1, 320)

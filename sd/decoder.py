@@ -10,15 +10,18 @@ class VAE_AttentionBlock(nn.Module):
         self.groupnorm = nn.GroupNorm(32, channels)
         self.attention = SelfAttention(1, channels)
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         # x: (Batch_Size, Features, Height, Width)
         
         residue = x
         
+        # (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height, Width)
+        x = self.groupnorm(x)
+        
         n, c, h, w = x.shape
         
         # (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height * Width)
-        x = x.view(n, c, h * w)
+        x = x.view((n, c, h * w))
         
         # (Batch_Size, Features, Height * Width) -> (Batch_Size, Height * Width, Features)
         x = x.transpose(-1, -2)
@@ -49,7 +52,7 @@ class VAE_ResidualBlock(nn.Module):
         else:
             self.residual_layer = nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0)
     
-    def forward(self, x:torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         # x: (Batch_Size, In_Channels, Height, Width)
         
         residue = x
@@ -89,6 +92,7 @@ class VAE_Decoder(nn.Sequential):
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             VAE_ResidualBlock(512, 512),
             
+            # Repeats the rows and columns of the data by scale_factor (like when you resize an image by doubling its size).
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 4, Width / 4)
             nn.Upsample(scale_factor=2),
             
@@ -124,13 +128,13 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(128, 3, kernel_size=3, padding=1)
         )
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         #  x: (Batch_Size, 4, Height / 8, Width / 8)
         
         x /= 0.18215
         
-        for module  in self:
+        for module in self:
             x = module(x)
         
         # (Batch_Size, 3, Height, Width)
-        return x    
+        return x

@@ -5,12 +5,12 @@ from attention import SelfAttention, CrossAttention
 
 class TimeEmbedding(nn.Module):
     
-    def __init__(self, n_embd: int):
+    def __init__(self, n_embd):
         super().__init__()
         self.linear_1 = nn.Linear(n_embd, 4 * n_embd)
         self.linear_2 = nn.Linear(4 * n_embd, 4 * n_embd)
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         # x: (1, 320)
         
         x = self.linear_1(x)
@@ -24,12 +24,11 @@ class TimeEmbedding(nn.Module):
 
 class UNET_ResidualBlock(nn.Module):
     
-    def __init__(self, in_channels: int, out_channels: int, n_time=1280):
+    def __init__(self, in_channels, out_channels, n_time=1280):
         super().__init__()
         self.groupnorm_feature = nn.GroupNorm(32, in_channels)
         self.conv_feature = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.linear_time = nn.Linear(n_time, out_channels)
-        
         
         self.groupnorm_merged = nn.GroupNorm(32, out_channels)
         self.conv_merged = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
@@ -97,7 +96,7 @@ class UNET_AttentionBlock(nn.Module):
         n, c, h, w = x.shape
         
         # (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height * Width)
-        x = x.view((n, c, h*w)) 
+        x = x.view((n, c, h * w)) 
         
         # (Batch_Size, Features, Height * Width) -> (Batch_Size, Height * Width, Features)
         x = x.transpose(-1, -2)
@@ -107,7 +106,10 @@ class UNET_AttentionBlock(nn.Module):
         residue_short = x
         
         x = self.layernorm_1(x)
-        self.attention_1(x)
+        x = self.attention_1(x)
+        x += residue_short
+        
+        # (Batch_Size, Height * Width, Features) + (Batch_Size, Height * Width, Features) -> (Batch_Size, Height * Width, Features)
         x += residue_short
         
         residue_short = x
@@ -116,7 +118,7 @@ class UNET_AttentionBlock(nn.Module):
         x = self.layernorm_2(x)
         
         # Cross Attention
-        self.attention_2(x, context)
+        x = self.attention_2(x, context)
         
         x += residue_short
         
@@ -142,7 +144,7 @@ class UNET_AttentionBlock(nn.Module):
         
 class Upsample(nn.Module):
     
-    def __init__(self, channels: int):
+    def __init__(self, channels):
         super().__init__()
         self.conv = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
     
@@ -153,7 +155,7 @@ class Upsample(nn.Module):
         
 class SwitchSequential(nn.Sequential):
     
-    def forward(self, x: torch.Tensor, context: torch.Tensor, time:torch.Tensor) -> torch.Tensor:
+    def forward(self, x, context, time):
         for layer in self:
             if isinstance(layer, UNET_AttentionBlock):
                 x = layer(x, context)
@@ -163,7 +165,6 @@ class SwitchSequential(nn.Sequential):
                 x = layer(x)
         return x
     
-
 class UNET(nn.Module):
     
     def __init__(self):
@@ -226,7 +227,7 @@ class UNET(nn.Module):
             
             SwitchSequential(UNET_ResidualBlock(1280, 640), UNET_AttentionBlock(8, 80)),
             
-            SwitchSequential(UNET_ResidualBlock(960, 640), UNET_AttentionBlock(8, 80), Upsample(640 )),
+            SwitchSequential(UNET_ResidualBlock(960, 640), UNET_AttentionBlock(8, 80), Upsample(640)),
             
             SwitchSequential(UNET_ResidualBlock(960, 320), UNET_AttentionBlock(8, 40)),
             
@@ -255,7 +256,7 @@ class UNET(nn.Module):
         return x
 
 class UNET_OutputLayer(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int ):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
         self.groupnorm = nn.GroupNorm(32, in_channels)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
@@ -280,7 +281,7 @@ class Diffusion(nn.Module):
         self.unet = UNET()
         self.final = UNET_OutputLayer(320, 4)
     
-    def forward(self, latent: torch.Tensor, context: torch.Tensor, time: torch.Tensor):
+    def forward(self, latent, context, time):
         # latent: (Batch_Size, 4, Height / 8, Width / 8)
         # context: (Batch_Size, Seq_Len, Dim)
         # time: (1, 320)

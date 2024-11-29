@@ -9,7 +9,7 @@ class CLIPEmbedding(nn.Module):
         super().__init__()
         
         self.token_embedding = nn.Embedding(n_vocab, n_embd)
-        self.position_embedding = nn.Parameter(torch.zeros(n_tokens, n_embd))
+        self.position_embedding = nn.Parameter(torch.zeros((n_tokens, n_embd)))
     
     def forward(self, tokens):
         # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
@@ -30,7 +30,7 @@ class CLIPLayer(nn.Module):
         self.linear_1 = nn.Linear(n_embd, 4 * n_embd)
         self.linear_2 = nn.Linear(4 * n_embd, n_embd)
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         # (Batch_Size, Seq_Len, Dim)
         
         residue = x
