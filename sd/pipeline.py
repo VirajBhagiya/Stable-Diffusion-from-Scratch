@@ -8,7 +8,7 @@ HEIGHT = 512
 LATENT_WIDTH = WIDTH // 8
 LATENT_HEIGHT = HEIGHT // 8
 
-def generate(prompt, uncond_prompt, # Negative prompt or empty string
+def generate(prompt, uncond_prompt=None, # Negative prompt or empty string
              input_image=None, strength=0.8, do_cfg=True, cfg_scale=7.5, sampler_name="ddpm", 
              n_inference_steps=50, models={}, seed=None, device=None,
              idle_device=None, tokenizer=None):

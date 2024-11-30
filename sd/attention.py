@@ -35,7 +35,7 @@ class SelfAttention(nn.Module):
         if causal_mask:
             #  Mask where the upper triagle (above the principal diagonal) is made up of 1
             mask = torch.ones_like(weight, dtype=torch.bool).triu(1)
-            mask.masked_fill_(mask, -torch.inf)
+            weight.masked_fill_(mask, -torch.inf)
             
         weight /= math.sqrt(self.d_head)
         

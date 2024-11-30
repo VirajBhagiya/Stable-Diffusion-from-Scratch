@@ -109,9 +109,6 @@ class UNET_AttentionBlock(nn.Module):
         x = self.attention_1(x)
         x += residue_short
         
-        # (Batch_Size, Height * Width, Features) + (Batch_Size, Height * Width, Features) -> (Batch_Size, Height * Width, Features)
-        x += residue_short
-        
         residue_short = x
         
         # Normalization + Cross Attention with skip connection
